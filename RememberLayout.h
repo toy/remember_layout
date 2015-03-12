@@ -9,6 +9,7 @@
 @interface RememberLayout : NSObject {
   NSValue *defaultInputSource;
   NSMutableDictionary *inputSources;
+  NSArray *excludeAppIds;
 }
 
 - (void)appDeactivated:(NSNotification *)notification;

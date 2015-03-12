@@ -25,7 +25,8 @@
              name:NSWorkspaceDidDeactivateApplicationNotification
            object:nil];
 
-  TISInputSourceRef inputSourceRef = TISCopyCurrentASCIICapableKeyboardLayoutInputSource();
+  TISInputSourceRef inputSourceRef =
+      TISCopyCurrentASCIICapableKeyboardLayoutInputSource();
   if (inputSourceRef == nil) {
     inputSourceRef = TISCopyCurrentKeyboardLayoutInputSource();
   }
@@ -33,12 +34,24 @@
     defaultInputSource = [NSValue valueWithPointer:inputSourceRef];
   }
 
+  NSString *excludePath =
+      [NSHomeDirectory() stringByAppendingPathComponent:@".remember_layout.no"];
+  NSString *excludeContents =
+      [NSString stringWithContentsOfFile:excludePath
+                                encoding:NSUTF8StringEncoding
+                                   error:nil];
+  if (excludeContents != nil) {
+    excludeAppIds = [excludeContents componentsSeparatedByString:@"\n"];
+  }
+
   return self;
 }
 
 - (void)appDeactivated:(NSNotification *)notification {
-  NSString *deactivatedAppId = [[[notification userInfo] objectForKey:NSWorkspaceApplicationKey] bundleIdentifier];
-  NSString *activatedAppId = [[[NSWorkspace sharedWorkspace] frontmostApplication] bundleIdentifier];
+  NSString *deactivatedAppId = [[[notification userInfo]
+      objectForKey:NSWorkspaceApplicationKey] bundleIdentifier];
+  NSString *activatedAppId =
+      [[[NSWorkspace sharedWorkspace] frontmostApplication] bundleIdentifier];
 
   if (deactivatedAppId != nil) {
     NSValue *previousInputSource = [inputSources objectForKey:deactivatedAppId];
@@ -47,12 +60,14 @@
     }
 
     [inputSources
-        setObject:[NSValue valueWithPointer:TISCopyCurrentKeyboardLayoutInputSource()]
+        setObject:
+            [NSValue valueWithPointer:TISCopyCurrentKeyboardLayoutInputSource()]
            forKey:deactivatedAppId];
   }
 
   NSValue *newInputSource = [inputSources objectForKey:activatedAppId];
-  if (newInputSource) {
+  if (newInputSource && (excludeAppIds == nil ||
+                         ![excludeAppIds containsObject:activatedAppId])) {
     TISSelectInputSource([newInputSource pointerValue]);
   } else if (defaultInputSource) {
     TISSelectInputSource([defaultInputSource pointerValue]);
